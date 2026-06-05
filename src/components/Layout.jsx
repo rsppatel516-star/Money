@@ -37,7 +37,7 @@ export default function Layout() {
       {/* Mobile Header */}
       <div className="mobile-header">
         <div className="brand" style={{ padding: 0 }}>
-          <Wallet size={28} />
+          <img src="/favicon.svg" alt="MoneyFlow Logo" style={{ width: 28, height: 28 }} />
           <span>MoneyFlow</span>
         </div>
         <button onClick={toggleMobileMenu} style={{ color: 'var(--text-main)' }}>
@@ -57,7 +57,7 @@ export default function Layout() {
       {/* Sidebar Navigation */}
       <aside className={`sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="brand">
-          <Wallet size={32} />
+          <img src="/favicon.svg" alt="MoneyFlow Logo" style={{ width: 32, height: 32 }} />
           <span>MoneyFlow</span>
         </div>
         
