@@ -1,157 +1,116 @@
-/* eslint-disable */
 import React from 'react';
-import { useFinance } from '../context/FinanceContext';
-import BudgetCard from '../components/BudgetCard';
-import { BiPieChart, BiError, BiBadgeCheck, BiInfoCircle } from 'react-icons/bi';
+import { motion } from 'framer-motion';
+import { Edit3, Info, CheckCircle2 } from 'lucide-react';
+import { useStore } from '../store/useStore';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+};
 
 export default function Budget() {
-  const { transactions, budgets, DEFAULT_CATEGORIES, settings } = useFinance();
+  const budgets = useStore(state => state.budgets) || [];
 
-  const currencySym = settings.currency === 'INR' ? '₹' : settings.currency === 'USD' ? '$' : '€';
-
-  const formatCurrency = (val) => {
-    return `${currencySym}${Math.round(val).toLocaleString()}`;
-  };
-
-  // Group transactions for current month expenses by category
-  const categorySpentMap = React.useMemo(() => {
-    const today = new Date();
-    const map = {};
-    
-    // Initialize all default categories with 0 spent
-    DEFAULT_CATEGORIES.forEach(c => {
-      map[c.name] = 0;
-    });
-
-    transactions
-      .filter(t => {
-        const d = new Date(t.date);
-        return t.type === 'expense' && 
-               d.getFullYear() === today.getFullYear() && 
-               d.getMonth() === today.getMonth();
-      })
-      .forEach(tx => {
-        map[tx.category] = (map[tx.category] || 0) + Number(tx.amount);
-      });
-
-    return map;
-  }, [transactions, DEFAULT_CATEGORIES]);
-
-  // Aggregate metrics
-  const aggregateMetrics = React.useMemo(() => {
-    let totalLimit = 0;
-    let totalSpentInBudgets = 0;
-    let overspentCount = 0;
-    let nearLimitCount = 0;
-
-    Object.keys(budgets).forEach(catName => {
-      const limit = budgets[catName] || 0;
-      const spent = categorySpentMap[catName] || 0;
-      totalLimit += limit;
-      totalSpentInBudgets += Math.min(limit, spent); // Track how much of the budget limit we actually consumed
-      
-      if (limit > 0) {
-        if (spent > limit) overspentCount++;
-        else if (spent >= limit * 0.8) nearLimitCount++;
-      }
-    });
-
-    const remaining = Math.max(0, totalLimit - totalSpentInBudgets);
-
-    return {
-      totalLimit,
-      totalSpent: Object.values(categorySpentMap).reduce((a, b) => a + b, 0),
-      remaining,
-      overspentCount,
-      nearLimitCount
-    };
-  }, [budgets, categorySpentMap]);
+  const totalBudgetLimit = budgets.reduce((acc, b) => acc + b.limit, 0);
+  const totalSpent = budgets.reduce((acc, b) => acc + b.spent, 0);
+  const overallConsumedPercent = totalBudgetLimit > 0 ? Math.min(100, Math.round((totalSpent / totalBudgetLimit) * 100)) : 0;
 
   return (
-    <div className="space-y-6">
-      {/* Title */}
-      <div>
-        <h2 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100 font-heading tracking-tight leading-none">
-          Monthly Budgets
-        </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5">
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '2rem' }}>
+      
+      <div style={{ marginBottom: '1rem' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '800px' }}>
           Establish spending limits per category, track progress, and configure alerts.
         </p>
       </div>
 
-      {/* Aggregate metrics grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Total Allocation */}
-        <div className="p-5 rounded-3xl glass-panel-light dark:glass-panel-dark border border-slate-200/50 dark:border-slate-800/50 flex flex-col gap-1 shadow-sm">
-          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Budget Limit</span>
-          <h4 className="text-xl font-bold text-slate-850 dark:text-slate-205">
-            {aggregateMetrics.totalLimit > 0 ? formatCurrency(aggregateMetrics.totalLimit) : 'No Budgets Configured'}
-          </h4>
-          <span className="text-xs text-slate-400 font-medium">Sum of all active category allocations</span>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+        <motion.div variants={itemVariants} style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+          <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Total Budget Limit</p>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#111827', marginBottom: '0.25rem' }}>₹{totalBudgetLimit.toLocaleString()}</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Sum of all active category allocations</p>
+        </motion.div>
 
-        {/* Warning Counts */}
-        <div className="p-5 rounded-3xl glass-panel-light dark:glass-panel-dark border border-slate-200/50 dark:border-slate-800/50 flex flex-col gap-1 shadow-sm">
-          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Budget Status</span>
-          <h4 className="text-lg font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-            {aggregateMetrics.overspentCount > 0 ? (
-              <span className="text-rose-500 flex items-center gap-1">
-                <BiError /> {aggregateMetrics.overspentCount} Exceeded
-              </span>
-            ) : aggregateMetrics.nearLimitCount > 0 ? (
-              <span className="text-amber-500 flex items-center gap-1">
-                <BiInfoCircle /> {aggregateMetrics.nearLimitCount} Warning
-              </span>
-            ) : (
-              <span className="text-emerald-500 flex items-center gap-1">
-                <BiBadgeCheck /> All Safe
-              </span>
-            )}
-          </h4>
-          <span className="text-xs text-slate-450 font-medium">Current month parameters</span>
-        </div>
+        <motion.div variants={itemVariants} style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+          <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Budget Status</p>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <CheckCircle2 size={24} /> All Safe
+          </h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Current month parameters</p>
+        </motion.div>
 
-        {/* Overall Progress */}
-        <div className="p-5 rounded-3xl glass-panel-light dark:glass-panel-dark border border-slate-200/50 dark:border-slate-800/50 flex flex-col gap-2 shadow-sm justify-center">
-          <div className="flex justify-between items-center text-xs font-bold">
-            <span className="text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[10px]">Budget Consumed</span>
-            <span className="text-slate-700 dark:text-slate-300">
-              {aggregateMetrics.totalLimit > 0 
-                ? `${((aggregateMetrics.totalSpent / aggregateMetrics.totalLimit) * 100).toFixed(0)}%` 
-                : '0%'}
-            </span>
+        <motion.div variants={itemVariants} style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '0.5rem' }}>
+            <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Budget Consumed</p>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>{overallConsumedPercent}%</span>
           </div>
-          <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-            <div 
-              className={`h-full rounded-full transition-all duration-300 ${aggregateMetrics.totalSpent > aggregateMetrics.totalLimit ? 'bg-rose-500' : 'bg-brand-500'}`}
-              style={{ width: `${aggregateMetrics.totalLimit > 0 ? Math.min(100, (aggregateMetrics.totalSpent / aggregateMetrics.totalLimit) * 100) : 0}%` }}
-            />
+          <div style={{ width: '100%', height: '8px', backgroundColor: '#f3f4f6', borderRadius: '4px', overflow: 'hidden', marginTop: '1rem' }}>
+            <div style={{ height: '100%', backgroundColor: '#8b5cf6', width: `${overallConsumedPercent}%`, borderRadius: '4px' }}></div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
-      {/* Helper Information Banner */}
-      <div className="p-4 rounded-2xl bg-slate-100/50 dark:bg-slate-900/10 border border-slate-200/40 dark:border-slate-800/40 flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400">
-        <BiInfoCircle className="text-lg text-brand-500 shrink-0" />
-        <span>You can modify your budgets by clicking the edit icon on the cards. Budgets with a limit of 0 or left unconfigured will not trigger spending warnings.</span>
-      </div>
+      <motion.div variants={itemVariants} style={{ backgroundColor: '#f3f4f6', borderRadius: '0.75rem', padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', border: '1px solid #e5e7eb' }}>
+        <Info size={20} color="#8b5cf6" style={{ flexShrink: 0 }} />
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+          You can modify your budgets by clicking the edit icon on the cards. Budgets with a limit of 0 or left unconfigured will not trigger spending warnings.
+        </p>
+      </motion.div>
 
-      {/* Grid of Budget Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {DEFAULT_CATEGORIES.map(category => {
-          const limit = budgets[category.name] || 0;
-          const spent = categorySpentMap[category.name] || 0;
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem' }}>
+        {budgets.map(budget => {
+          const isConfigured = budget.limit > 0;
+          const percentUsed = isConfigured ? Math.min(100, Math.round((budget.spent / budget.limit) * 100)) : 0;
+          const remaining = isConfigured ? Math.max(0, budget.limit - budget.spent) : 0;
 
           return (
-            <BudgetCard
-              key={category.name}
-              categoryName={category.name}
-              spent={spent}
-              limit={limit}
-            />
+            <motion.div key={budget.id} variants={itemVariants} style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '1.25rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', position: 'relative' }}>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '0.75rem', backgroundColor: `${budget.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
+                    {budget.icon}
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#111827', margin: 0 }}>{budget.category}</h4>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Budget Category</span>
+                  </div>
+                </div>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }} title="Edit Budget">
+                  <Edit3 size={16} />
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '0.85rem' }}><span style={{ color: 'var(--text-muted)' }}>Spent:</span> <span style={{ fontWeight: 600, color: '#111827' }}>₹{budget.spent.toLocaleString()}</span></div>
+                <div style={{ fontSize: '0.85rem' }}><span style={{ color: 'var(--text-muted)' }}>Budget:</span> <span style={{ fontWeight: 600, color: isConfigured ? '#111827' : 'var(--text-muted)' }}>{isConfigured ? `₹${budget.limit.toLocaleString()}` : 'Not Set'}</span></div>
+              </div>
+
+              {isConfigured ? (
+                <>
+                  <div style={{ width: '100%', height: '6px', backgroundColor: '#f3f4f6', borderRadius: '3px', overflow: 'hidden', margin: '0.75rem 0' }}>
+                    <div style={{ height: '100%', backgroundColor: budget.color, width: `${percentUsed}%`, borderRadius: '3px' }}></div>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 600 }}>
+                    <span style={{ color: 'var(--text-muted)' }}>{percentUsed}% Used</span>
+                    <span style={{ color: '#111827' }}>₹{remaining.toLocaleString()} remaining</span>
+                  </div>
+                </>
+              ) : (
+                <button style={{ width: '100%', padding: '0.75rem', marginTop: '0.75rem', backgroundColor: '#f9fafb', border: '1px dashed #d1d5db', borderRadius: '0.5rem', color: '#8b5cf6', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
+                  Set Spending Limit
+                </button>
+              )}
+            </motion.div>
           );
         })}
       </div>
-    </div>
+
+    </motion.div>
   );
 }

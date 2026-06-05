@@ -1,52 +1,116 @@
-/* eslint-disable */
 import React, { useState } from 'react';
-import Sidebar from './Sidebar';
-import Navbar from './Navbar';
-import MobileNav from './MobileNav';
-import AddTransactionModal from './AddTransactionModal';
-import { BiPlus } from 'react-icons/bi';
-import { motion } from 'framer-motion';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, ReceiptText, CalendarSync, Target, Sparkles, Wallet, PieChart, Settings, Menu, X, Calculator, LogOut, BarChart3, CreditCard } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useStore } from '../store/useStore';
 
-export default function Layout({ children }) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+const navItems = [
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/transactions', label: 'Transactions', icon: ReceiptText },
+  { path: '/analytics', label: 'Analytics & Trends', icon: BarChart3 },
+  { path: '/budget', label: 'Budget Planner', icon: Wallet },
+  { path: '/goals', label: 'Savings Goals', icon: Target },
+  { path: '/debts', label: 'Debt Repayments', icon: CreditCard },
+  { path: '/subscriptions', label: 'Subscriptions', icon: CalendarSync },
+  { path: '/insights', label: 'AI Insights', icon: Sparkles },
+  { path: '/calculator', label: 'Calculator', icon: Calculator },
+  { path: '/settings', label: 'Settings', icon: Settings },
+];
+
+export default function Layout() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const user = useStore(state => state.user);
+  const logout = useStore(state => state.logout);
+
+  const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 mesh-bg-light dark:mesh-bg-dark transition-colors duration-300">
-      {/* Sidebar - Desktop Only */}
-      <Sidebar />
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
-        {/* Navbar */}
-        <Navbar />
-
-        {/* Dynamic Page Content */}
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-          <div className="max-w-6xl mx-auto w-full">
-            {children}
-          </div>
-        </main>
+    <div className="app-container">
+      {/* Mobile Header */}
+      <div className="mobile-header">
+        <div className="brand" style={{ padding: 0 }}>
+          <Wallet size={28} />
+          <span>MoneyFlow</span>
+        </div>
+        <button onClick={toggleMobileMenu} style={{ color: 'var(--text-main)' }}>
+          {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+        </button>
       </div>
 
-      {/* Mobile Navigation - Mobile Only */}
-      <MobileNav />
+      {/* Sidebar Overlay for Mobile */}
+      {isMobileMenuOpen && (
+        <div 
+          className="modal-overlay" 
+          style={{ zIndex: 45 }} 
+          onClick={closeMobileMenu}
+        />
+      )}
 
-      {/* Floating Action Button (FAB) for Quick Transaction creation */}
-      <motion.button
-        onClick={() => setIsModalOpen(true)}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        className="fixed right-6 bottom-20 md:bottom-8 z-40 w-14 h-14 rounded-full bg-gradient-to-tr from-brand-600 to-violet-500 hover:from-brand-500 hover:to-violet-400 text-white flex items-center justify-center shadow-xl shadow-brand-500/30 cursor-pointer border border-brand-400/20"
-        title="Add Transaction"
-      >
-        <BiPlus className="text-3xl" />
-      </motion.button>
+      {/* Sidebar Navigation */}
+      <aside className={`sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+        <div className="brand">
+          <Wallet size={32} />
+          <span>MoneyFlow</span>
+        </div>
+        
+        <nav className="nav-links" style={{ flex: 1 }}>
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink 
+                key={item.path} 
+                to={item.path}
+                onClick={closeMobileMenu}
+                className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+              >
+                <Icon size={20} />
+                <span>{item.label}</span>
+              </NavLink>
+            );
+          })}
+        </nav>
 
-      {/* Quick Transaction Creation Modal */}
-      <AddTransactionModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-      />
+        {/* User Profile & Logout */}
+        <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: 'auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', padding: '0 0.5rem' }}>
+            <div style={{ width: '36px', height: '36px', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+              {user?.name?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <div style={{ overflow: 'hidden' }}>
+              <p style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-main)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{user?.name || 'User'}</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{user?.email || 'user@example.com'}</p>
+            </div>
+          </div>
+          <button onClick={handleLogout} className="nav-item" style={{ width: '100%', color: 'var(--danger)' }}>
+            <LogOut size={20} />
+            <span>Log Out</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="main-content">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '2rem' }}
+          >
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
+      </main>
     </div>
   );
 }

@@ -1,392 +1,281 @@
-/* eslint-disable */
-import React, { useState, useMemo } from 'react';
-import { useFinance } from '../context/FinanceContext';
-import { useAuth } from '../context/AuthContext';
-import TransactionCard from '../components/TransactionCard';
-import AddTransactionModal from '../components/AddTransactionModal';
-import { exportToCSV } from '../utils/csvExport';
-import { exportToPDF } from '../utils/pdfExport';
-import { 
-  BiSearch, 
-  BiFilterAlt, 
-  BiDownload, 
-  BiReset, 
-  BiChevronLeft, 
-  BiChevronRight,
-  BiTrendingUp,
-  BiTrendingDown,
-  BiChevronDown
-} from 'react-icons/bi';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Filter, Plus, X, Trash2, ChevronDown } from 'lucide-react';
+import { useStore } from '../store/useStore';
 
-export default function Transactions() {
-  const { transactions, DEFAULT_CATEGORIES, settings, income, expenses, balance } = useFinance();
-  const { user } = useAuth();
-  
-  // Modal states for editing
-  const [editingTx, setEditingTx] = useState(null);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+const CustomDropdown = ({ value, onChange, options, placeholder }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
-  // Filter States
-  const [search, setSearch] = useState('');
-  const [type, setType] = useState('all');
-  const [category, setCategory] = useState('all');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [minAmount, setMinAmount] = useState('');
-  const [maxAmount, setMaxAmount] = useState('');
-  
-  // Mobile filter collapse toggle
-  const [showFilters, setShowFilters] = useState(false);
-
-  // Pagination states
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
-
-  // Filter Logic
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter(tx => {
-      // 1. Text Search matching note or category
-      const noteMatch = tx.note?.toLowerCase().includes(search.toLowerCase());
-      const catMatch = tx.category.toLowerCase().includes(search.toLowerCase());
-      if (search && !noteMatch && !catMatch) return false;
-
-      // 2. Type Filter
-      if (type !== 'all' && tx.type !== type) return false;
-
-      // 3. Category Filter
-      if (category !== 'all' && tx.category !== category) return false;
-
-      // 4. Date Range
-      if (startDate && tx.date < startDate) return false;
-      if (endDate && tx.date > endDate) return false;
-
-      // 5. Amount Range
-      if (minAmount && Number(tx.amount) < Number(minAmount)) return false;
-      if (maxAmount && Number(tx.amount) > Number(maxAmount)) return false;
-
-      return true;
-    });
-  }, [transactions, search, type, category, startDate, endDate, minAmount, maxAmount]);
-
-  // Reset all filters
-  const handleResetFilters = () => {
-    setSearch('');
-    setType('all');
-    setCategory('all');
-    setStartDate('');
-    setEndDate('');
-    setMinAmount('');
-    setMaxAmount('');
-    setCurrentPage(1);
-  };
-
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage) || 1;
-  const paginatedTransactions = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredTransactions.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredTransactions, currentPage]);
-
-  const handlePageChange = (pageNum) => {
-    if (pageNum >= 1 && pageNum <= totalPages) {
-      setCurrentPage(pageNum);
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
     }
-  };
-
-  const handleEditClick = (tx) => {
-    setEditingTx(tx);
-    setIsEditModalOpen(true);
-  };
-
-  const handleCSVExport = () => {
-    exportToCSV(filteredTransactions);
-  };
-
-  const handlePDFExport = () => {
-    exportToPDF(filteredTransactions, user, { income, expenses, balance }, settings);
-  };
-
-  const currencySym = settings.currency === 'INR' ? '₹' : settings.currency === 'USD' ? '$' : '€';
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
-    <div className="space-y-6">
-      {/* Header and exports */}
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+    <div ref={dropdownRef} style={{ position: 'relative', width: '100%' }}>
+      <div 
+        className="form-input" 
+        onClick={() => setIsOpen(!isOpen)}
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', backgroundColor: 'var(--bg-color)', color: value ? 'var(--text-main)' : 'var(--text-muted)' }}
+      >
+        <span>{value || placeholder}</span>
+        <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronDown size={18} color="var(--text-muted)" />
+        </motion.div>
+      </div>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.15 }}
+            style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '0.5rem', backgroundColor: 'var(--panel-bg)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)', zIndex: 50, maxHeight: '200px', overflowY: 'auto' }}
+          >
+            {options.map((opt) => (
+              <div
+                key={opt}
+                onClick={() => { onChange(opt); setIsOpen(false); }}
+                style={{ padding: '0.75rem 1rem', cursor: 'pointer', color: value === opt ? 'var(--primary)' : 'var(--text-main)', fontWeight: value === opt ? 600 : 400, backgroundColor: value === opt ? 'var(--primary-light)' : 'transparent', transition: 'background-color 0.2s' }}
+                onMouseEnter={(e) => { if(value !== opt) e.target.style.backgroundColor = 'var(--panel-bg-hover)'; }}
+                onMouseLeave={(e) => { if(value !== opt) e.target.style.backgroundColor = 'transparent'; }}
+              >
+                {opt}
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { opacity: 1, x: 0 }
+};
+
+export default function Transactions() {
+  const transactions = useStore(state => state.transactions);
+  const addTransaction = useStore(state => state.addTransaction);
+  const removeTransaction = useStore(state => state.removeTransaction);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [newName, setNewName] = useState('');
+  const [newAmount, setNewAmount] = useState('');
+  const [newType, setNewType] = useState('expense');
+  const [newCategory, setNewCategory] = useState('');
+  const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newPaymentMethod, setNewPaymentMethod] = useState('');
+
+  const filteredTransactions = transactions.filter(t =>
+    t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.category.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleAddTransaction = (e) => {
+    e.preventDefault();
+    if (!newName || !newAmount || !newCategory || !newDate || !newPaymentMethod) return;
+
+    const amountValue = parseFloat(newAmount);
+    const newTx = {
+      id: Date.now(),
+      name: newName,
+      category: newCategory,
+      amount: newType === 'expense' ? -Math.abs(amountValue) : Math.abs(amountValue),
+      date: newDate,
+      paymentMethod: newPaymentMethod,
+      icon: newType === 'income' ? '💵' : '💸'
+    };
+
+    addTransaction(newTx);
+    setIsModalOpen(false);
+    setNewName('');
+    setNewAmount('');
+    setNewCategory('');
+    setNewDate(new Date().toISOString().split('T')[0]);
+    setNewPaymentMethod('');
+  };
+
+  // Group transactions by date
+  const groupedTransactions = filteredTransactions.reduce((groups, item) => {
+    const date = item.date;
+    if (!groups[date]) groups[date] = [];
+    groups[date].push(item);
+    return groups;
+  }, {});
+
+  const sortedDates = Object.keys(groupedTransactions).sort((a, b) => new Date(b) - new Date(a));
+
+  return (
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="transactions">
+      <div className="page-header" style={{ marginBottom: '2rem' }}>
         <div>
-          <h2 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100 font-heading tracking-tight leading-none">
-            Transactions Statement
-          </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5">
-            Audit, filter and export your full expense logs.
-          </p>
+          <h1 className="page-title">Transactions</h1>
+          <p style={{ color: 'var(--text-muted)' }}>View and manage your history.</p>
         </div>
-        
-        {/* Export Buttons */}
-        <div className="flex gap-2">
-          <button
-            onClick={handleCSVExport}
-            disabled={filteredTransactions.length === 0}
-            className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-800/30 flex items-center gap-2 text-sm font-semibold transition-all disabled:opacity-50"
-          >
-            <BiDownload /> CSV
-          </button>
-          <button
-            onClick={handlePDFExport}
-            disabled={filteredTransactions.length === 0}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-violet-500 hover:from-brand-500 hover:to-violet-400 text-white flex items-center gap-2 text-sm font-semibold transition-all shadow-md shadow-brand-500/10 disabled:opacity-50"
-          >
-            <BiDownload /> PDF Report
-          </button>
-        </div>
+        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+          <Plus size={20} />
+          <span>Add Transaction</span>
+        </motion.button>
       </div>
 
-      {/* Search & Collapse Toggle for Filters */}
-      <div className="p-4 rounded-3xl glass-panel-light dark:glass-panel-dark border border-slate-200/50 dark:border-slate-800/50 flex flex-col gap-4 shadow-sm">
-        <div className="flex flex-col md:flex-row gap-3">
-          {/* Main Search input */}
-          <div className="flex-1 relative flex items-center">
-            <BiSearch className="absolute left-4 text-slate-450 dark:text-slate-500 text-lg" />
+      <motion.div variants={itemVariants} className="card">
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+          <div className="form-group" style={{ flex: 1, margin: 0, flexDirection: 'row', alignItems: 'center', backgroundColor: 'var(--panel-bg-hover)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem' }}>
+            <Search size={20} color="var(--text-muted)" />
             <input
               type="text"
-              placeholder="Search by note or category..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-              className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200/60 dark:border-slate-800/60 bg-transparent text-slate-800 dark:text-slate-150 placeholder-slate-400 focus:outline-none focus:border-brand-500 text-sm"
+              placeholder="Search transactions by name or category..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ background: 'none', border: 'none', color: 'var(--text-main)', width: '100%', outline: 'none', marginLeft: '0.5rem' }}
             />
           </div>
-
-          <div className="flex gap-2 shrink-0">
-            {/* Filter Toggle */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`px-4 py-3 rounded-xl border flex items-center gap-2 text-sm font-semibold transition-colors ${
-                showFilters 
-                  ? 'bg-brand-500/10 border-brand-500 text-brand-600 dark:text-brand-400'
-                  : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-800/30'
-              }`}
-            >
-              <BiFilterAlt /> Filters
-              <BiChevronDown className={`transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`} />
-            </button>
-            
-            {/* Reset Filters */}
-            <button
-              onClick={handleResetFilters}
-              className="px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/30 flex items-center gap-1.5 text-sm font-semibold transition-colors"
-              title="Reset Filters"
-            >
-              <BiReset className="text-lg" /> Reset
-            </button>
-          </div>
+          <button className="btn" style={{ border: '1px solid var(--border-color)' }}>
+            <Filter size={20} />
+            Filter
+          </button>
         </div>
 
-        {/* Collapsible filter block */}
-        {showFilters && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-3 border-t border-slate-200/30 dark:border-slate-800/30 animate-fadeIn">
-            {/* Type */}
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Type</label>
-              <select
-                value={type}
-                onChange={(e) => { setType(e.target.value); setCurrentPage(1); }}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200/60 dark:border-slate-800/60 bg-transparent text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
-              >
-                <option value="all">All Types</option>
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
-              </select>
-            </div>
-
-            {/* Category */}
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Category</label>
-              <select
-                value={category}
-                onChange={(e) => { setCategory(e.target.value); setCurrentPage(1); }}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200/60 dark:border-slate-800/60 bg-transparent text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
-              >
-                <option value="all">All Categories</option>
-                {DEFAULT_CATEGORIES.map(c => (
-                  <option key={c.name} value={c.name}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Date Range */}
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Start Date</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => { setStartDate(e.target.value); setCurrentPage(1); }}
-                className="w-full px-3 py-1.5 rounded-lg border border-slate-200/60 dark:border-slate-800/60 bg-transparent text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
-              />
-            </div>
-            
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">End Date</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1); }}
-                className="w-full px-3 py-1.5 rounded-lg border border-slate-200/60 dark:border-slate-800/60 bg-transparent text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
-              />
-            </div>
-
-            {/* Amount Range */}
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Min & Max Amount</label>
-              <div className="flex gap-2 items-center">
-                <input
-                  type="number"
-                  placeholder="Min"
-                  value={minAmount}
-                  onChange={(e) => { setMinAmount(e.target.value); setCurrentPage(1); }}
-                  className="w-full px-2 py-2 rounded-lg border border-slate-200/60 dark:border-slate-800/60 bg-transparent text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
-                />
-                <span className="text-slate-400">-</span>
-                <input
-                  type="number"
-                  placeholder="Max"
-                  value={maxAmount}
-                  onChange={(e) => { setMaxAmount(e.target.value); setCurrentPage(1); }}
-                  className="w-full px-2 py-2 rounded-lg border border-slate-200/60 dark:border-slate-800/60 bg-transparent text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Transactions Grid (Desktop Table vs Mobile Cards) */}
-      <div className="p-6 rounded-3xl glass-panel-light dark:glass-panel-dark border border-slate-200/50 dark:border-slate-800/50 flex flex-col shadow-sm overflow-hidden">
-        {/* Mobile View: list of Transaction Cards */}
-        <div className="block md:hidden space-y-2.5">
-          {paginatedTransactions.length === 0 ? (
-            <div className="py-12 text-center text-xs text-slate-500 dark:text-slate-400">
-              No transactions match your filter definitions.
-            </div>
+        <motion.div variants={containerVariants} className="list-container" style={{ gap: '2rem' }}>
+          {sortedDates.length === 0 ? (
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>No transactions found.</p>
           ) : (
-            paginatedTransactions.map((tx) => (
-              <TransactionCard 
-                key={tx.id} 
-                transaction={tx} 
-                onEdit={handleEditClick} 
-              />
-            ))
-          )}
-        </div>
-
-        {/* Desktop View: beautiful table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full border-collapse text-left">
-            <thead>
-              <tr className="border-b border-slate-200/30 dark:border-slate-800/30 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                <th className="py-3 px-4">Date</th>
-                <th className="py-3 px-4">Category</th>
-                <th className="py-3 px-4">Description</th>
-                <th className="py-3 px-4">Type</th>
-                <th className="py-3 px-4 text-right">Amount</th>
-                <th className="py-3 px-4 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100/50 dark:divide-slate-800/50 text-xs">
-              {paginatedTransactions.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="py-12 text-center text-xs text-slate-500 dark:text-slate-400">
-                    No transactions match your search filters.
-                  </td>
-                </tr>
-              ) : (
-                paginatedTransactions.map((tx) => (
-                  <tr key={tx.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-colors">
-                    <td className="py-3.5 px-4 font-medium text-slate-500 dark:text-slate-400">
-                      {tx.date}
-                    </td>
-                    <td className="py-3.5 px-4 font-bold text-slate-800 dark:text-slate-200">
-                      <span className="px-2.5 py-1.5 rounded-lg bg-slate-100/50 dark:bg-slate-800/30 border border-slate-200/20 dark:border-slate-800/20">
-                        {tx.category}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300 max-w-[200px] truncate">
-                      {tx.note || '-'}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      {tx.type === 'income' ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                          <BiTrendingUp /> INCOME
+            sortedDates.map(date => (
+              <div key={date}>
+                <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {groupedTransactions[date].map(item => (
+                    <motion.div variants={itemVariants} key={item.id} className="list-item" style={{ position: 'relative' }}>
+                      <div className="item-left">
+                        <div className="item-icon" style={{ fontSize: '1.5rem' }}>{item.icon}</div>
+                        <div className="item-details">
+                          <span className="item-name">{item.name}</span>
+                          <span className="item-category" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            {item.category}
+                            {item.paymentMethod && (
+                              <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', backgroundColor: 'var(--panel-bg-hover)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontWeight: 600 }}>
+                                {item.paymentMethod}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="item-right" style={{ display: 'flex', alignItems: 'center', flexDirection: 'row', gap: '1rem' }}>
+                        <span className="item-amount" style={{ color: item.amount > 0 ? 'var(--success)' : 'inherit', fontSize: '1.1rem' }}>
+                          {item.amount > 0 ? '+' : ''}₹{Math.abs(item.amount).toLocaleString()}
                         </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded-full">
-                          <BiTrendingDown /> EXPENSE
-                        </span>
-                      )}
-                    </td>
-                    <td className={`py-3.5 px-4 text-right font-extrabold text-sm ${tx.type === 'expense' ? 'text-rose-500' : 'text-emerald-500'}`}>
-                      {tx.type === 'expense' ? '-' : '+'} {currencySym} {tx.amount.toLocaleString()}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => handleEditClick(tx)}
-                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-800 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
-                        >
-                          Edit
+                        <button onClick={() => removeTransaction(item.id)} style={{ color: 'var(--danger)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', transition: 'background-color 0.2s' }} className="hover-bg-danger">
+                          <Trash2 size={18} />
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </motion.div>
+      </motion.div>
 
-        {/* Pagination Footer */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-200/30 dark:border-slate-800/30 pt-4 mt-4">
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              Showing page {currentPage} of {totalPages}
-            </span>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 disabled:opacity-40 hover:bg-slate-100/50 dark:hover:bg-slate-800/30"
-              >
-                <BiChevronLeft className="text-xl" />
-              </button>
-              {[...Array(totalPages)].map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handlePageChange(idx + 1)}
-                  className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
-                    currentPage === idx + 1
-                      ? 'bg-brand-500 text-white'
-                      : 'border border-slate-200 dark:border-slate-800 text-slate-500 hover:bg-slate-100/50 dark:hover:bg-slate-800/30'
-                  }`}
-                >
-                  {idx + 1}
+      <AnimatePresence>
+        {isModalOpen && (
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="modal-content" initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}>
+              <div className="modal-header">
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>New Transaction</h2>
+                <button className="modal-close" onClick={() => setIsModalOpen(false)}>
+                  <X size={24} />
                 </button>
-              ))}
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 disabled:opacity-40 hover:bg-slate-100/50 dark:hover:bg-slate-800/30"
-              >
-                <BiChevronRight className="text-xl" />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+              </div>
 
-      {/* Inline AddTransactionModal for editing purposes */}
-      <AddTransactionModal
-        isOpen={isEditModalOpen}
-        onClose={() => { setIsEditModalOpen(false); setEditingTx(null); }}
-        transactionToEdit={editingTx}
-      />
-    </div>
+              <form onSubmit={handleAddTransaction} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                
+                {/* Custom Segmented Control */}
+                <div style={{ display: 'flex', backgroundColor: 'var(--panel-bg-hover)', borderRadius: 'var(--radius-md)', padding: '0.25rem' }}>
+                  <div 
+                    onClick={() => setNewType('expense')}
+                    style={{ flex: 1, textAlign: 'center', padding: '0.75rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', backgroundColor: newType === 'expense' ? 'var(--bg-color)' : 'transparent', color: newType === 'expense' ? 'var(--danger)' : 'var(--text-muted)', boxShadow: newType === 'expense' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none' }}
+                  >
+                    Expense
+                  </div>
+                  <div 
+                    onClick={() => setNewType('income')}
+                    style={{ flex: 1, textAlign: 'center', padding: '0.75rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s', backgroundColor: newType === 'income' ? 'var(--bg-color)' : 'transparent', color: newType === 'income' ? 'var(--success)' : 'var(--text-muted)', boxShadow: newType === 'income' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none' }}
+                  >
+                    Income
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Transaction Name</label>
+                  <input required type="text" className="form-input" placeholder="e.g. Uber, Coffee, Salary" value={newName} onChange={(e) => setNewName(e.target.value)} />
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label">Amount (₹)</label>
+                    <div style={{ position: 'relative' }}>
+                      <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontWeight: 600 }}>₹</span>
+                      <input required type="number" step="0.01" min="0" className="form-input" style={{ paddingLeft: '2.5rem', fontFamily: '"JetBrains Mono", monospace' }} placeholder="0.00" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label">Category</label>
+                    <CustomDropdown 
+                      value={newCategory} 
+                      onChange={setNewCategory} 
+                      placeholder="Select category"
+                      options={newType === 'expense' ? [
+                        "Food & Dining", "Transport", "Utilities", "Shopping", "Entertainment", "Health", "Other Expense"
+                      ] : [
+                        "Salary", "Freelance", "Investments", "Gifts", "Other Income"
+                      ]} 
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label">Date</label>
+                    <input required type="date" className="form-input" value={newDate} onChange={(e) => setNewDate(e.target.value)} style={{ cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace' }} />
+                  </div>
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label">Payment Method</label>
+                    <CustomDropdown 
+                      value={newPaymentMethod} 
+                      onChange={setNewPaymentMethod} 
+                      placeholder="Select method"
+                      options={["UPI", "Credit Card", "Debit Card", "Net Banking", "Cash"]} 
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                  <button type="button" className="btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" style={{ minWidth: '150px' }}>Save Transaction</button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
