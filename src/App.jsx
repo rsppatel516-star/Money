@@ -13,6 +13,7 @@ import Settings from './pages/Settings';
 import Calculator from './pages/Calculator';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import Reports from './pages/Reports';
 import { useStore } from './store/useStore';
 
 const ProtectedRoute = () => {
@@ -38,16 +39,16 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="transactions" element={<Transactions />} />
             <Route path="analytics" element={<Analytics />} />
-            <Route path="budget" element={<Budget />} />
             <Route path="goals" element={<Goals />} />
             <Route path="debts" element={<Debts />} />
             <Route path="subscriptions" element={<Subscriptions />} />
             <Route path="insights" element={<Insights />} />
             <Route path="calculator" element={<Calculator />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="reports" element={<Reports />} />
           </Route>
         </Route>
-        
+
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

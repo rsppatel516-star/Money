@@ -1,6 +1,6 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Plus, Trash2, ArrowDownToLine, Info } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, Trash2, ArrowDownToLine, Info, X } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
 const containerVariants = {
@@ -15,9 +15,47 @@ const itemVariants = {
 
 export default function Goals() {
   const goals = useStore(state => state.goals) || [];
+  const addGoal = useStore(state => state.addGoal);
+  const removeGoal = useStore(state => state.removeGoal);
+  const updateGoal = useStore(state => state.updateGoal);
   
-  // Calculate a mock "available balance"
-  const availableBalance = 60800;
+  // Modals state
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newGoalName, setNewGoalName] = useState('');
+  const [newGoalTarget, setNewGoalTarget] = useState('');
+  
+  const [depositGoalId, setDepositGoalId] = useState(null);
+  const [depositAmount, setDepositAmount] = useState('');
+
+  // Calculate a mock "available balance" based on total income - expenses
+  const transactions = useStore(state => state.transactions) || [];
+  const availableBalance = transactions.reduce((acc, t) => acc + t.amount, 0);
+
+  const handleAddGoal = (e) => {
+    e.preventDefault();
+    if (newGoalName && newGoalTarget) {
+      addGoal({
+        id: Date.now(),
+        name: newGoalName,
+        current: 0,
+        target: parseFloat(newGoalTarget),
+        color: '#8b5cf6',
+        icon: '🎯'
+      });
+      setIsAddModalOpen(false);
+      setNewGoalName('');
+      setNewGoalTarget('');
+    }
+  };
+
+  const handleDeposit = (e) => {
+    e.preventDefault();
+    if (depositGoalId && depositAmount) {
+      updateGoal(depositGoalId, parseFloat(depositAmount));
+      setDepositGoalId(null);
+      setDepositAmount('');
+    }
+  };
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '2rem' }}>
@@ -29,7 +67,7 @@ export default function Goals() {
             Create targets for emergency funds or major purchases and allocate spare balance.
           </p>
         </div>
-        <button style={{ backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.75rem 1.5rem', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(139, 92, 246, 0.3)' }}>
+        <button onClick={() => setIsAddModalOpen(true)} style={{ backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.75rem 1.5rem', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(139, 92, 246, 0.3)' }}>
           <Plus size={18} />
           Create Goal
         </button>
@@ -60,7 +98,7 @@ export default function Goals() {
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Savings Target</span>
                   </div>
                 </div>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }} title="Delete Goal">
+                <button onClick={() => removeGoal(goal.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)' }} title="Delete Goal">
                   <Trash2 size={18} />
                 </button>
               </div>
@@ -79,7 +117,7 @@ export default function Goals() {
                 <span style={{ color: '#111827' }}>₹{remaining.toLocaleString()} to go</span>
               </div>
 
-              <button style={{ width: '100%', padding: '0.75rem', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '0.5rem', color: '#8b5cf6', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'background-color 0.2s' }}>
+              <button onClick={() => setDepositGoalId(goal.id)} style={{ width: '100%', padding: '0.75rem', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '0.5rem', color: '#8b5cf6', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'background-color 0.2s' }}>
                 <ArrowDownToLine size={16} />
                 Deposit Savings
               </button>
@@ -87,6 +125,65 @@ export default function Goals() {
           );
         })}
       </div>
+
+      <AnimatePresence>
+        {isAddModalOpen && (
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="modal-content" initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}>
+              <div className="modal-header">
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Create New Goal</h2>
+                <button className="modal-close" onClick={() => setIsAddModalOpen(false)}>
+                  <X size={24} />
+                </button>
+              </div>
+              <form onSubmit={handleAddGoal} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Goal Name</label>
+                  <input required type="text" className="form-input" placeholder="e.g. New Laptop" value={newGoalName} onChange={(e) => setNewGoalName(e.target.value)} />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Target Amount (₹)</label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontWeight: 600 }}>₹</span>
+                    <input required type="number" step="0.01" min="0" className="form-input" style={{ paddingLeft: '2.5rem', fontFamily: '"JetBrains Mono", monospace' }} placeholder="0.00" value={newGoalTarget} onChange={(e) => setNewGoalTarget(e.target.value)} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                  <button type="button" className="btn" onClick={() => setIsAddModalOpen(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" style={{ minWidth: '150px' }}>Create Goal</button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {depositGoalId && (
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="modal-content" initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}>
+              <div className="modal-header">
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Deposit Savings</h2>
+                <button className="modal-close" onClick={() => setDepositGoalId(null)}>
+                  <X size={24} />
+                </button>
+              </div>
+              <form onSubmit={handleDeposit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Amount to Deposit (₹)</label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontWeight: 600 }}>₹</span>
+                    <input required type="number" step="0.01" min="0" max={availableBalance} className="form-input" style={{ paddingLeft: '2.5rem', fontFamily: '"JetBrains Mono", monospace' }} placeholder="0.00" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} />
+                  </div>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>Available balance: ₹{availableBalance.toLocaleString()}</p>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                  <button type="button" className="btn" onClick={() => setDepositGoalId(null)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" style={{ minWidth: '150px' }}>Deposit</button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </motion.div>
   );

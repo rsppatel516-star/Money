@@ -96,10 +96,6 @@ export default function Dashboard() {
           <h1 className="page-title">Overview</h1>
           <p style={{ color: 'var(--text-muted)' }}>Welcome back! Here's your live financial summary.</p>
         </div>
-        {/*<Link to="/transactions" className="btn btn-primary">
-          <Plus size={20} />
-          <span>Add Transaction</span>
-        </Link>*/}
       </div>
 
       <div className="grid-cards">

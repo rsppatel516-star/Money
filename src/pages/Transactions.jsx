@@ -80,6 +80,7 @@ export default function Transactions() {
   const [newCategory, setNewCategory] = useState('');
   const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
   const [newPaymentMethod, setNewPaymentMethod] = useState('');
+  const [newUser, setNewUser] = useState('Rudra Patel');
 
   const filteredTransactions = transactions.filter(t =>
     t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -98,6 +99,7 @@ export default function Transactions() {
       amount: newType === 'expense' ? -Math.abs(amountValue) : Math.abs(amountValue),
       date: newDate,
       paymentMethod: newPaymentMethod,
+      user: newUser,
       icon: newType === 'income' ? '💵' : '💸'
     };
 
@@ -108,6 +110,7 @@ export default function Transactions() {
     setNewCategory('');
     setNewDate(new Date().toISOString().split('T')[0]);
     setNewPaymentMethod('');
+    setNewUser('Rudra Patel');
   };
 
   // Group transactions by date
@@ -172,6 +175,11 @@ export default function Transactions() {
                             {item.paymentMethod && (
                               <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', backgroundColor: 'var(--panel-bg-hover)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontWeight: 600 }}>
                                 {item.paymentMethod}
+                              </span>
+                            )}
+                            {item.user && (
+                              <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', backgroundColor: 'var(--primary-light)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--primary)', color: 'var(--primary)', fontWeight: 600 }}>
+                                {item.user}
                               </span>
                             )}
                           </span>
@@ -263,6 +271,16 @@ export default function Transactions() {
                       onChange={setNewPaymentMethod} 
                       placeholder="Select method"
                       options={["UPI", "Credit Card", "Debit Card", "Net Banking", "Cash"]} 
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label">User</label>
+                    <CustomDropdown 
+                      value={newUser} 
+                      onChange={setNewUser} 
+                      placeholder="Select user"
+                      options={["Rudra Patel", "Girishbhai Patel"]} 
                     />
                   </div>
                 </div>

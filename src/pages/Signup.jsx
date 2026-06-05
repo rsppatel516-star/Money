@@ -10,12 +10,19 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const login = useStore(state => state.login);
+  const registerUser = useStore(state => state.registerUser);
+  const registeredUsers = useStore(state => state.registeredUsers);
   const navigate = useNavigate();
 
   const handleSignup = (e) => {
     e.preventDefault();
     if (name && email && password.length >= 6) {
-      // Simulate account creation and auto-login
+      if (registeredUsers.some(u => u.email === email)) {
+        setError('An account with this email already exists');
+        return;
+      }
+      const newUser = { name, email, password };
+      registerUser(newUser);
       login({ name, email });
       navigate('/dashboard');
     } else {

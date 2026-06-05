@@ -12,8 +12,14 @@ const itemVariants = {
 };
 
 export default function Settings() {
-  const [emailNotif, setEmailNotif] = useState(true);
-  const [currency, setCurrency] = useState('INR');
+  const settings = useStore(state => state.settings) || { currency: 'INR', emailNotifications: true };
+  const updateSettings = useStore(state => state.updateSettings);
+
+  const emailNotif = settings.emailNotifications;
+  const currency = settings.currency;
+
+  const setEmailNotif = (val) => updateSettings({ emailNotifications: val });
+  const setCurrency = (val) => updateSettings({ currency: val });
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -49,17 +55,17 @@ export default function Settings() {
             <span className="card-title">Preferences</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '500px' }}>
-            
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h4 style={{ fontWeight: 600, color: 'var(--text-main)' }}>Email Notifications</h4>
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Receive daily transaction summaries.</p>
               </div>
-              <div 
+              <div
                 onClick={() => setEmailNotif(!emailNotif)}
                 style={{ width: '44px', height: '24px', backgroundColor: emailNotif ? 'var(--primary)' : 'var(--border-color)', borderRadius: '12px', position: 'relative', cursor: 'pointer', transition: 'background-color 0.3s' }}
               >
-                <motion.div 
+                <motion.div
                   layout
                   initial={false}
                   animate={{ x: emailNotif ? 20 : 2 }}
@@ -74,9 +80,9 @@ export default function Settings() {
                 <h4 style={{ fontWeight: 600, color: 'var(--text-main)' }}>Currency</h4>
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Set your primary display currency.</p>
               </div>
-              <select 
-                className="form-input" 
-                value={currency} 
+              <select
+                className="form-input"
+                value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
                 style={{ width: 'auto', minWidth: '120px', cursor: 'pointer' }}
               >

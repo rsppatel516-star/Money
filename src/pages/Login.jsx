@@ -9,16 +9,21 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const login = useStore(state => state.login);
+  const registeredUsers = useStore(state => state.registeredUsers);
   const navigate = useNavigate();
 
   const handleLogin = (e) => {
     e.preventDefault();
-    // Simulate authentication check
-    if (email && password.length >= 6) {
-      login({ name: email.split('@')[0], email });
-      navigate('/dashboard');
+    if (email && password) {
+      const user = registeredUsers.find(u => u.email === email && u.password === password);
+      if (user) {
+        login({ name: user.name, email: user.email });
+        navigate('/dashboard');
+      } else {
+        setError('Invalid email or password');
+      }
     } else {
-      setError('Invalid email or password (min 6 chars)');
+      setError('Please enter your email and password');
     }
   };
 

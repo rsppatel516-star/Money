@@ -18,31 +18,82 @@ const PIE_COLORS = ['#8b5cf6', '#3b82f6', '#f59e0b', '#06b6d4', '#ef4444', '#10b
 export default function Analytics() {
   const transactions = useStore(state => state.transactions);
 
-  // MOCK DATA for exact UI match based on screenshots (we will mix real data logic if possible, but keep the structure)
-  // For the sake of matching the complex visual state perfectly, we construct data arrays.
+  // Dynamic data computation based on real transactions
+  const { monthlyData, categoryData, totalCategoryExp, dailyData, topCategoryName, topCategoryValue, avgDailyExpense } = useMemo(() => {
+    // 1. Monthly Data (last 6 months)
+    const monthMap = {};
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const mStr = d.toLocaleString('default', { month: 'short' });
+      monthMap[mStr] = { name: mStr, expense: 0, income: 0, sortKey: d.getFullYear() * 100 + d.getMonth() };
+    }
 
-  const monthlyData = [
-    { name: 'Jan', expense: 15000, income: 14000 },
-    { name: 'Feb', expense: 14000, income: 14500 },
-    { name: 'Mar', expense: 13000, income: 15000 },
-    { name: 'Apr', expense: 14500, income: 15500 },
-    { name: 'May', expense: 12000, income: 14500 },
-    { name: 'Jun', expense: 18000, income: 13000 },
-  ];
+    // 2. Category Data (All time expenses)
+    const catMap = {};
+    let totalExp = 0;
 
-  const categoryData = [
-    { name: 'Bills', value: 6000, percent: 18 },
-    { name: 'Entertainment', value: 3500, percent: 10 },
-    { name: 'Shopping', value: 12000, percent: 35 },
-    { name: 'Travel', value: 4200, percent: 12 },
-    { name: 'Food', value: 8500, percent: 25 },
-  ];
-  const totalCategoryExp = 34200;
+    // 3. Daily Data (Last 30 days)
+    const dayMap = {};
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dStr = d.toISOString().split('T')[0];
+      dayMap[dStr] = { day: `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`, value: 0 };
+    }
 
-  const dailyData = Array.from({ length: 30 }, (_, i) => ({
-    day: `Day ${i + 1}`,
-    value: i === 1 ? 8500 : (i === 2 ? 2000 : 0) // Spiky graph matching the screenshot
-  }));
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
+
+    transactions.forEach(t => {
+      const amt = Math.abs(t.amount);
+      const txDate = new Date(t.date);
+      const mStr = txDate.toLocaleString('default', { month: 'short' });
+
+      // Monthly
+      if (monthMap[mStr]) {
+        if (t.amount > 0) monthMap[mStr].income += amt;
+        else monthMap[mStr].expense += amt;
+      }
+
+      // Category
+      if (t.amount < 0) {
+        catMap[t.category] = (catMap[t.category] || 0) + amt;
+        totalExp += amt;
+      }
+
+      // Daily
+      if (t.amount < 0 && txDate >= thirtyDaysAgo && dayMap[t.date]) {
+        dayMap[t.date].value += amt;
+      }
+    });
+
+    const mData = Object.values(monthMap).sort((a, b) => a.sortKey - b.sortKey);
+
+    const cData = Object.entries(catMap).map(([name, value]) => ({
+      name,
+      value,
+      percent: totalExp > 0 ? Math.round((value / totalExp) * 100) : 0
+    })).sort((a, b) => b.value - a.value);
+
+    const dData = Object.values(dayMap);
+
+    const topCat = cData.length > 0 ? cData[0] : { name: 'None', value: 0 };
+    const avgDaily = totalExp > 0 ? Math.round(totalExp / 30) : 0; // Simplified average
+
+    return {
+      monthlyData: mData,
+      categoryData: cData,
+      totalCategoryExp: totalExp,
+      dailyData: dData,
+      topCategoryName: topCat.name,
+      topCategoryValue: topCat.value,
+      avgDailyExpense: avgDaily
+    };
+  }, [transactions]);
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '2rem' }}>
@@ -57,13 +108,13 @@ export default function Analytics() {
         
         <motion.div variants={itemVariants} style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)' }}>
           <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Top Spending Category</p>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', marginBottom: '0.25rem' }}>Shopping</h3>
-          <p style={{ fontSize: '0.85rem', color: '#ef4444', fontWeight: 500 }}>₹12,000 total spent</p>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', marginBottom: '0.25rem' }}>{topCategoryName}</h3>
+          <p style={{ fontSize: '0.85rem', color: '#ef4444', fontWeight: 500 }}>₹{topCategoryValue.toLocaleString()} total spent</p>
         </motion.div>
 
         <motion.div variants={itemVariants} style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)' }}>
           <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Average Daily Expense</p>
-          <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', marginBottom: '0.25rem' }}>₹1,140</h3>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', marginBottom: '0.25rem' }}>₹{avgDailyExpense.toLocaleString()}</h3>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Based on 30-day projection</p>
         </motion.div>
 
@@ -125,19 +176,23 @@ export default function Analytics() {
               </ResponsiveContainer>
               <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
                 <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.2rem' }}>TOTAL EXP</p>
-                <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827' }}>₹34,200</p>
+                <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827' }}>₹{totalCategoryExp.toLocaleString()}</p>
               </div>
             </div>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingLeft: '1rem' }}>
-              {categoryData.map((item, idx) => (
-                <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f3f4f6', padding: '0.5rem 0.75rem', borderRadius: '2rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}></div>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>{item.name}</span>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingLeft: '1rem', overflowY: 'auto' }}>
+              {categoryData.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No expense data available.</p>
+              ) : (
+                categoryData.map((item, idx) => (
+                  <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f3f4f6', padding: '0.5rem 0.75rem', borderRadius: '2rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}></div>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>{item.name}</span>
+                    </div>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#111827' }}>₹{item.value.toLocaleString()} ({item.percent}%)</span>
                   </div>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#111827' }}>₹{item.value.toLocaleString()} ({item.percent}%)</span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </motion.div>

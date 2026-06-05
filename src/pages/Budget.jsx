@@ -1,6 +1,6 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Edit3, Info, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Edit3, Info, CheckCircle2, X, Plus } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
 const containerVariants = {
@@ -15,6 +15,46 @@ const itemVariants = {
 
 export default function Budget() {
   const budgets = useStore(state => state.budgets) || [];
+  const updateBudget = useStore(state => state.updateBudget);
+  const addBudget = useStore(state => state.addBudget);
+
+  const [editingBudget, setEditingBudget] = useState(null);
+  const [newLimit, setNewLimit] = useState('');
+  
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
+  const [newAddLimit, setNewAddLimit] = useState('');
+
+  const handleEditSubmit = (e) => {
+    e.preventDefault();
+    if (editingBudget && newLimit !== '') {
+      updateBudget(editingBudget.id, parseFloat(newLimit));
+      setEditingBudget(null);
+      setNewLimit('');
+    }
+  };
+
+  const openEditModal = (budget) => {
+    setEditingBudget(budget);
+    setNewLimit(budget.limit > 0 ? budget.limit.toString() : '');
+  };
+
+  const handleAddSubmit = (e) => {
+    e.preventDefault();
+    if (newCategory && newAddLimit !== '') {
+      addBudget({
+        id: Date.now(),
+        category: newCategory,
+        limit: parseFloat(newAddLimit),
+        spent: 0,
+        color: 'var(--primary)',
+        icon: '📊'
+      });
+      setIsAddModalOpen(false);
+      setNewCategory('');
+      setNewAddLimit('');
+    }
+  };
 
   const totalBudgetLimit = budgets.reduce((acc, b) => acc + b.limit, 0);
   const totalSpent = budgets.reduce((acc, b) => acc + b.spent, 0);
@@ -23,10 +63,14 @@ export default function Budget() {
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '2rem' }}>
       
-      <div style={{ marginBottom: '1rem' }}>
+      <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '800px' }}>
           Establish spending limits per category, track progress, and configure alerts.
         </p>
+        <button className="action-btn" onClick={() => setIsAddModalOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Plus size={18} />
+          <span>Add Budget</span>
+        </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
@@ -81,7 +125,7 @@ export default function Budget() {
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Budget Category</span>
                   </div>
                 </div>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }} title="Edit Budget">
+                <button onClick={() => openEditModal(budget)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }} title="Edit Budget">
                   <Edit3 size={16} />
                 </button>
               </div>
@@ -102,7 +146,7 @@ export default function Budget() {
                   </div>
                 </>
               ) : (
-                <button style={{ width: '100%', padding: '0.75rem', marginTop: '0.75rem', backgroundColor: '#f9fafb', border: '1px dashed #d1d5db', borderRadius: '0.5rem', color: '#8b5cf6', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
+                <button onClick={() => openEditModal(budget)} style={{ width: '100%', padding: '0.75rem', marginTop: '0.75rem', backgroundColor: '#f9fafb', border: '1px dashed #d1d5db', borderRadius: '0.5rem', color: '#8b5cf6', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
                   Set Spending Limit
                 </button>
               )}
@@ -110,6 +154,70 @@ export default function Budget() {
           );
         })}
       </div>
+
+      <AnimatePresence>
+        {editingBudget && (
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="modal-content" initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}>
+              <div className="modal-header">
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Edit Budget Limit</h2>
+                <button className="modal-close" onClick={() => setEditingBudget(null)}>
+                  <X size={24} />
+                </button>
+              </div>
+              <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Category</label>
+                  <input type="text" className="form-input" value={editingBudget.category} disabled style={{ backgroundColor: 'var(--bg-color)', color: 'var(--text-muted)' }} />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">New Limit (₹)</label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontWeight: 600 }}>₹</span>
+                    <input required type="number" step="0.01" min="0" className="form-input" style={{ paddingLeft: '2.5rem', fontFamily: '"JetBrains Mono", monospace' }} placeholder="0.00" value={newLimit} onChange={(e) => setNewLimit(e.target.value)} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                  <button type="button" className="btn" onClick={() => setEditingBudget(null)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" style={{ minWidth: '150px' }}>Save Limit</button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isAddModalOpen && (
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="modal-content" initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}>
+              <div className="modal-header">
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Create New Budget</h2>
+                <button className="modal-close" onClick={() => setIsAddModalOpen(false)}>
+                  <X size={24} />
+                </button>
+              </div>
+              <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Category Name</label>
+                  <input required type="text" className="form-input" placeholder="e.g. Groceries" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Monthly Limit (₹)</label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontWeight: 600 }}>₹</span>
+                    <input required type="number" step="0.01" min="0" className="form-input" style={{ paddingLeft: '2.5rem', fontFamily: '"JetBrains Mono", monospace' }} placeholder="0.00" value={newAddLimit} onChange={(e) => setNewAddLimit(e.target.value)} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                  <button type="button" className="btn" onClick={() => setIsAddModalOpen(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" style={{ minWidth: '150px' }}>Create Budget</button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </motion.div>
   );

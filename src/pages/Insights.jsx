@@ -14,9 +14,21 @@ const itemVariants = {
 };
 
 export default function Insights() {
-  const { aiMessages = [], addAiMessage } = useStore();
+  const { aiMessages = [], addAiMessage, transactions = [], subscriptions = [], debts = [], settings } = useStore();
   const [inputText, setInputText] = useState('');
   const chatEndRef = useRef(null);
+  
+  const currency = settings?.currency || 'INR';
+
+  // Calculate dynamic stats
+  const totalIncome = transactions.filter(t => t.amount > 0).reduce((acc, t) => acc + t.amount, 0);
+  const totalExpense = transactions.filter(t => t.amount < 0).reduce((acc, t) => acc + Math.abs(t.amount), 0);
+  const savingsRatio = totalIncome > 0 ? Math.max(0, Math.round(((totalIncome - totalExpense) / totalIncome) * 100)) : 0;
+
+  const activeSubscriptions = subscriptions.length;
+  const monthlySubscriptionCost = subscriptions.reduce((acc, sub) => acc + (sub.cycle === 'Monthly' ? sub.cost : sub.cost / 12), 0);
+
+  const totalEmi = debts.reduce((acc, debt) => acc + debt.emi, 0);
 
   const quickActions = [
     'Suggest Budget Cuts',
@@ -72,7 +84,8 @@ export default function Insights() {
               <Wallet size={16} /> Savings Ratio Status
             </h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-              🎉 Great job! You are saving <strong>64%</strong> of your total earnings this month.
+              {savingsRatio > 0 ? `🎉 Great job! You are saving ` : `⚠️ You are currently saving `}
+              <strong>{savingsRatio}%</strong> of your total earnings this month.
             </p>
           </motion.div>
 
@@ -81,7 +94,7 @@ export default function Insights() {
               <TrendingUp size={16} /> Monthly Bill Projections
             </h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-              You have 4 recurring billing systems. Total projected monthly recurring expense is <strong style={{ color: '#8b5cf6' }}>₹4,694</strong>. Ensure these plans are fully utilized.
+              You have {activeSubscriptions} recurring billing systems. Total projected monthly recurring expense is <strong style={{ color: '#8b5cf6' }}>{currency} {Math.round(monthlySubscriptionCost).toLocaleString()}</strong>. Ensure these plans are fully utilized.
             </p>
           </motion.div>
 
@@ -90,7 +103,7 @@ export default function Insights() {
               <ActivitySquare size={16} /> Active EMI Obligations
             </h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-              Your monthly EMI payments total <strong style={{ color: '#ef4444' }}>₹25,500</strong>. Settle outstanding principal balances systematically to avoid compounding interest costs.
+              Your monthly EMI payments total <strong style={{ color: '#ef4444' }}>{currency} {totalEmi.toLocaleString()}</strong>. Settle outstanding principal balances systematically to avoid compounding interest costs.
             </p>
           </motion.div>
         </div>

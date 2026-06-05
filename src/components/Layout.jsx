@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ReceiptText, CalendarSync, Target, Sparkles, Wallet, PieChart, Settings, Menu, X, Calculator, LogOut, BarChart3, CreditCard } from 'lucide-react';
+import { LayoutDashboard, ReceiptText, CalendarSync, Target, Sparkles, Wallet, PieChart, Settings, Menu, X, Calculator, LogOut, BarChart3, CreditCard, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 
@@ -8,12 +8,12 @@ const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/transactions', label: 'Transactions', icon: ReceiptText },
   { path: '/analytics', label: 'Analytics & Trends', icon: BarChart3 },
-  { path: '/budget', label: 'Budget Planner', icon: Wallet },
   { path: '/goals', label: 'Savings Goals', icon: Target },
   { path: '/debts', label: 'Debt Repayments', icon: CreditCard },
   { path: '/subscriptions', label: 'Subscriptions', icon: CalendarSync },
   { path: '/insights', label: 'AI Insights', icon: Sparkles },
   { path: '/calculator', label: 'Calculator', icon: Calculator },
+  { path: '/reports', label: 'Reports', icon: FileText },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -47,9 +47,9 @@ export default function Layout() {
 
       {/* Sidebar Overlay for Mobile */}
       {isMobileMenuOpen && (
-        <div 
-          className="modal-overlay" 
-          style={{ zIndex: 45 }} 
+        <div
+          className="modal-overlay"
+          style={{ zIndex: 45 }}
           onClick={closeMobileMenu}
         />
       )}
@@ -60,13 +60,13 @@ export default function Layout() {
           <img src="/favicon.svg" alt="MoneyFlow Logo" style={{ width: 32, height: 32 }} />
           <span>MoneyFlow</span>
         </div>
-        
+
         <nav className="nav-links" style={{ flex: 1 }}>
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
-              <NavLink 
-                key={item.path} 
+              <NavLink
+                key={item.path}
                 to={item.path}
                 onClick={closeMobileMenu}
                 className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
