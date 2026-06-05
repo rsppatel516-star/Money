@@ -9,30 +9,25 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const login = useStore(state => state.login);
-  const registeredUsers = useStore(state => state.registeredUsers);
   const navigate = useNavigate();
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (email && password) {
-      const user = registeredUsers.find(u => u.email === email && u.password === password);
-      if (user) {
-        login({ name: user.name, email: user.email });
-        navigate('/dashboard');
-      } else {
-        setError('Invalid email or password');
-      }
+    // Simulate authentication check
+    if (email && password.length >= 6) {
+      login({ name: email.split('@')[0], email });
+      navigate('/dashboard');
     } else {
-      setError('Please enter your email and password');
+      setError('Invalid email or password (min 6 chars)');
     }
   };
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-color)', padding: '1rem' }}>
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        className="card" 
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="card"
         style={{ width: '100%', maxWidth: '400px', padding: '3rem 2rem' }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>

@@ -13,10 +13,6 @@ export const useStore = create(
     (set) => ({
       // Authentication State
       user: null,
-      registeredUsers: [],
-      registerUser: (userData) => set((state) => ({ 
-        registeredUsers: [...state.registeredUsers, userData] 
-      })),
       login: (userData) => set({ user: userData }),
       logout: () => set({ user: null }),
       

@@ -10,19 +10,12 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const login = useStore(state => state.login);
-  const registerUser = useStore(state => state.registerUser);
-  const registeredUsers = useStore(state => state.registeredUsers);
   const navigate = useNavigate();
 
   const handleSignup = (e) => {
     e.preventDefault();
     if (name && email && password.length >= 6) {
-      if (registeredUsers.some(u => u.email === email)) {
-        setError('An account with this email already exists');
-        return;
-      }
-      const newUser = { name, email, password };
-      registerUser(newUser);
+      // Simulate account creation and auto-login
       login({ name, email });
       navigate('/dashboard');
     } else {
@@ -32,10 +25,10 @@ export default function Signup() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-color)', padding: '1rem' }}>
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        className="card" 
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="card"
         style={{ width: '100%', maxWidth: '400px', padding: '3rem 2rem' }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
