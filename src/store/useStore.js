@@ -43,6 +43,14 @@ export const useStore = create(
         goals: state.goals.map(g => g.id === id ? { ...g, ...updatedGoal } : g)
       })),
 
+      // SIPs State
+      sips: [],
+      addSip: (sip) => set((state) => ({ sips: [...state.sips, sip] })),
+      removeSip: (id) => set((state) => ({ sips: state.sips.filter(s => s.id !== id) })),
+      updateSip: (id, updatedSip) => set((state) => ({
+        sips: state.sips.map(s => s.id === id ? { ...s, ...updatedSip } : s)
+      })),
+
       // Budgets State
       budgets: initialBudgets,
       addBudget: (budget) => set((state) => ({ budgets: [...state.budgets, budget] })),

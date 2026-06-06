@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ReceiptText, CalendarSync, Target, Sparkles, Wallet, PieChart, Settings, Menu, X, Calculator, LogOut, BarChart3, CreditCard, FileText } from 'lucide-react';
+import { LayoutDashboard, ReceiptText, CalendarSync, Target, Sparkles, Wallet, PieChart, Menu, X, Calculator, LogOut, BarChart3, CreditCard, FileText, LineChart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 
@@ -14,7 +14,7 @@ const navItems = [
   { path: '/insights', label: 'AI Insights', icon: Sparkles },
   { path: '/calculator', label: 'Calculator', icon: Calculator },
   { path: '/reports', label: 'Reports', icon: FileText },
-  { path: '/settings', label: 'Settings', icon: Settings },
+  { path: '/sip', label: 'SIP', icon: LineChart },
 ];
 
 export default function Layout() {

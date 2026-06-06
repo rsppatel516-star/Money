@@ -9,11 +9,11 @@ import Budget from './pages/Budget';
 import Goals from './pages/Goals';
 import Debts from './pages/Debts';
 import Insights from './pages/Insights';
-import Settings from './pages/Settings';
 import Calculator from './pages/Calculator';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Reports from './pages/Reports';
+import SIP from './pages/SIP';
 import { useStore } from './store/useStore';
 
 const ProtectedRoute = () => {
@@ -44,8 +44,8 @@ function App() {
             <Route path="subscriptions" element={<Subscriptions />} />
             <Route path="insights" element={<Insights />} />
             <Route path="calculator" element={<Calculator />} />
-            <Route path="settings" element={<Settings />} />
             <Route path="reports" element={<Reports />} />
+            <Route path="sip" element={<SIP />} />
           </Route>
         </Route>
 
