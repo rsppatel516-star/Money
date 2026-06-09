@@ -211,7 +211,7 @@ export default function Dashboard() {
               <div className="progress-bar">
                 <div 
                   className="progress-fill success" 
-                  style={{ width: `${Math.min((topGoal.current / topGoal.target) * 100, 100)}%` }}
+                  style={{ width: `${topGoal.target > 0 ? Math.min((topGoal.current / topGoal.target) * 100, 100) : 0}%` }}
                 ></div>
               </div>
             </div>

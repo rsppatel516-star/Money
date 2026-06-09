@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, ArrowDownToLine, Info, X, Target, User, Users } from 'lucide-react';
+import { Plus, Trash2, ArrowDownToLine, Info, X, Target, User, Users, ChevronDown, Check } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
 const containerVariants = {
@@ -13,6 +13,64 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 }
 };
 
+// Custom Select Component
+function CustomSelect({ value, onChange, options, label }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="form-group" style={{ margin: 0 }} ref={dropdownRef}>
+      <label className="form-label">{label}</label>
+      <div style={{ position: 'relative' }}>
+        <button 
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="form-input" 
+          style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', textAlign: 'left', backgroundColor: 'var(--panel-bg)' }}
+        >
+          <span>{value}</span>
+          <ChevronDown size={16} style={{ color: 'var(--text-muted)' }} />
+        </button>
+        
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0, y: -10 }}
+              style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '0.5rem', backgroundColor: 'var(--panel-bg)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', zIndex: 50, overflow: 'hidden', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+            >
+              {options.map(option => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => { onChange(option); setIsOpen(false); }}
+                  style={{ width: '100%', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: value === option ? 'var(--primary)' : 'transparent', color: value === option ? 'white' : 'var(--text-main)', border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'background-color 0.15s' }}
+                  onMouseEnter={(e) => { if (value !== option) e.currentTarget.style.backgroundColor = 'var(--primary-light)'; }}
+                  onMouseLeave={(e) => { if (value !== option) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                >
+                  <span>{option}</span>
+                  {value === option && <Check size={16} />}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
 export default function Goals() {
   const goals = useStore(state => state.goals) || [];
   const addGoal = useStore(state => state.addGoal);
@@ -24,7 +82,7 @@ export default function Goals() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newGoalName, setNewGoalName] = useState('');
   const [newGoalTarget, setNewGoalTarget] = useState('');
-  const [newGoalOwner, setNewGoalOwner] = useState('Joint');
+  const [newGoalOwner, setNewGoalOwner] = useState('Joint (Shared)');
   
   const [depositGoalId, setDepositGoalId] = useState(null);
   const [depositAmount, setDepositAmount] = useState('');
@@ -41,14 +99,14 @@ export default function Goals() {
         name: newGoalName,
         current: 0,
         target: parseFloat(newGoalTarget),
-        owner: newGoalOwner,
+        owner: newGoalOwner === 'Joint (Shared)' ? 'Joint' : newGoalOwner,
         color: 'var(--primary)',
         icon: '🎯'
       });
       setIsAddModalOpen(false);
       setNewGoalName('');
       setNewGoalTarget('');
-      setNewGoalOwner('Joint');
+      setNewGoalOwner('Joint (Shared)');
     }
   };
 
@@ -206,14 +264,12 @@ export default function Goals() {
                     <input required type="number" step="0.01" min="0" className="form-input" style={{ paddingLeft: '2.5rem', fontFamily: '"JetBrains Mono", monospace' }} placeholder="0.00" value={newGoalTarget} onChange={(e) => setNewGoalTarget(e.target.value)} />
                   </div>
                 </div>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label">Owner</label>
-                  <select className="form-input" value={newGoalOwner} onChange={(e) => setNewGoalOwner(e.target.value)}>
-                    <option value="Joint">Joint (Shared)</option>
-                    <option value="Rudra Patel">Rudra Patel</option>
-                    <option value="Girishbhai Patel">Girishbhai Patel</option>
-                  </select>
-                </div>
+                <CustomSelect 
+                  label="Owner" 
+                  value={newGoalOwner} 
+                  onChange={setNewGoalOwner} 
+                  options={['Joint (Shared)', 'Rudra Patel', 'Girishbhai Patel']} 
+                />
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
                   <button type="button" className="btn" onClick={() => setIsAddModalOpen(false)}>Cancel</button>
                   <button type="submit" className="btn btn-primary" style={{ minWidth: '150px' }}>Create Goal</button>

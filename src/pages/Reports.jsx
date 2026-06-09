@@ -24,7 +24,7 @@ function CustomDropdown({ icon: Icon, value, options, onChange }) {
 
   return (
     <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block' }}>
-      <div 
+      <div
         onClick={() => setIsOpen(!isOpen)}
         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--panel-bg)', padding: '0.5rem 1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)', cursor: 'pointer', minWidth: '150px', justifyContent: 'space-between' }}
       >
@@ -34,7 +34,7 @@ function CustomDropdown({ icon: Icon, value, options, onChange }) {
         </div>
         <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />
       </div>
-      
+
       {isOpen && (
         <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '0.25rem', backgroundColor: 'var(--panel-bg)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-md)', zIndex: 50, overflow: 'hidden' }}>
           {options.map((opt) => (
@@ -72,7 +72,7 @@ export default function Reports() {
   const transactions = useStore(state => state.transactions);
   const settings = useStore(state => state.settings);
   const currency = settings?.currency || 'INR';
-  
+
   const [dateFilter, setDateFilter] = useState('all'); // 'all', 'this_month', 'last_month'
   const [categoryFilter, setCategoryFilter] = useState('all');
 
@@ -83,7 +83,7 @@ export default function Reports() {
       const txDate = new Date(t.date);
       const now = new Date();
       let dateMatch = true;
-      
+
       if (dateFilter === 'this_month') {
         dateMatch = txDate.getMonth() === now.getMonth() && txDate.getFullYear() === now.getFullYear();
       } else if (dateFilter === 'last_month') {
@@ -124,7 +124,7 @@ export default function Reports() {
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
-    
+
     const primaryColor = [139, 92, 246]; // #8b5cf6
     const textColor = [51, 51, 51];
     const lightGray = [243, 244, 246];
@@ -132,16 +132,16 @@ export default function Reports() {
     // Document Header
     doc.setFillColor(...primaryColor);
     doc.rect(0, 0, 210, 25, 'F');
-    
+
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
     doc.text('MoneyFlow', 14, 16);
-    
+
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.text('Financial Report', 14, 22);
-    
+
     doc.setFontSize(10);
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, 150, 16);
 
@@ -157,7 +157,7 @@ export default function Reports() {
     doc.setFont("helvetica", "normal");
     const periodText = dateFilter === 'all' ? 'All Time' : dateFilter === 'this_month' ? 'This Month' : 'Last Month';
     const catText = categoryFilter === 'all' ? 'All Categories' : categoryFilter;
-    
+
     // Summary Cards (drawn as light grey boxes)
     doc.setFillColor(...lightGray);
     doc.roundedRect(14, 45, 88, 25, 3, 3, 'F');
@@ -204,14 +204,14 @@ export default function Reports() {
       body: tableRows,
       startY: 80,
       theme: 'grid',
-      styles: { 
+      styles: {
         fontSize: 9,
         font: 'helvetica',
         cellPadding: 4,
         lineColor: [229, 231, 235],
         lineWidth: 0.1,
       },
-      headStyles: { 
+      headStyles: {
         fillColor: primaryColor,
         textColor: 255,
         fontStyle: 'bold',
@@ -222,7 +222,7 @@ export default function Reports() {
       columnStyles: {
         5: { halign: 'right', fontStyle: 'bold' }
       },
-      didParseCell: function(data) {
+      didParseCell: function (data) {
         if (data.section === 'body' && data.column.index === 5) {
           if (data.cell.raw.includes('+')) {
             data.cell.styles.textColor = [16, 185, 129]; // Green
@@ -236,7 +236,7 @@ export default function Reports() {
 
     // Footer with page numbers
     const pageCount = doc.internal.getNumberOfPages();
-    for(let i = 1; i <= pageCount; i++) {
+    for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(8);
       doc.setTextColor(156, 163, 175);
@@ -253,9 +253,9 @@ export default function Reports() {
           <h1 className="page-title">Financial Reports</h1>
           <p className="subtitle" style={{ color: 'var(--text-muted)' }}>Generate and download custom transaction reports</p>
         </div>
-        
+
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <CustomDropdown 
+          <CustomDropdown
             icon={Calendar}
             value={dateFilter}
             onChange={setDateFilter}
@@ -266,7 +266,7 @@ export default function Reports() {
             ]}
           />
 
-          <CustomDropdown 
+          <CustomDropdown
             icon={Filter}
             value={categoryFilter}
             onChange={setCategoryFilter}
@@ -286,7 +286,7 @@ export default function Reports() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         {/* Summary Metrics */}
         <div className="grid-cards">
-          <motion.div 
+          <motion.div
             className="card"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -301,7 +301,7 @@ export default function Reports() {
             </div>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="card"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -316,7 +316,7 @@ export default function Reports() {
             </div>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="card"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -334,7 +334,7 @@ export default function Reports() {
 
         {/* Charts Section */}
         <div className="grid-cards" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' }}>
-          <motion.div 
+          <motion.div
             className="card"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -365,9 +365,9 @@ export default function Reports() {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip 
+                    <Tooltip
                       contentStyle={{ backgroundColor: 'var(--panel-bg)', borderColor: 'var(--border-color)', borderRadius: 'var(--radius-md)' }}
-                      formatter={(value) => `${currency} ${value.toLocaleString()}`} 
+                      formatter={(value) => `${currency} ${value.toLocaleString()}`}
                     />
                     <Legend />
                   </PieChart>
@@ -376,7 +376,7 @@ export default function Reports() {
             </div>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="card"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -396,11 +396,11 @@ export default function Reports() {
                   <BarChart data={barData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} stroke="var(--text-muted)" />
-                    <YAxis axisLine={false} tickLine={false} stroke="var(--text-muted)" tickFormatter={(value) => `${value > 1000 ? (value/1000).toFixed(0) + 'k' : value}`} />
-                    <Tooltip 
-                      cursor={{ fill: 'var(--panel-bg-hover)' }} 
+                    <YAxis axisLine={false} tickLine={false} stroke="var(--text-muted)" tickFormatter={(value) => `${value > 1000 ? (value / 1000).toFixed(0) + 'k' : value}`} />
+                    <Tooltip
+                      cursor={{ fill: 'var(--panel-bg-hover)' }}
                       contentStyle={{ backgroundColor: 'var(--panel-bg)', borderColor: 'var(--border-color)', borderRadius: 'var(--radius-md)' }}
-                      formatter={(value) => `${currency} ${value.toLocaleString()}`} 
+                      formatter={(value) => `${currency} ${value.toLocaleString()}`}
                     />
                     <Bar dataKey="amount" radius={[4, 4, 0, 0]} maxBarSize={60}>
                       {barData.map((entry, index) => (
@@ -413,7 +413,7 @@ export default function Reports() {
             </div>
           </motion.div>
         </div>
-        <motion.div 
+        <motion.div
           className="card"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -425,7 +425,7 @@ export default function Reports() {
               Transactions Included
             </h3>
           </div>
-          
+
           <div className="list-container" style={{ marginTop: '1rem' }}>
             {filteredTransactions.length === 0 ? (
               <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>No transactions found for the selected filters.</p>

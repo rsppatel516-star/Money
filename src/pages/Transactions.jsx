@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, Plus, X, Trash2, ChevronDown } from 'lucide-react';
+import { Search, Filter, Plus, X, Trash2, ChevronDown, Receipt } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
 const CustomDropdown = ({ value, onChange, options, placeholder }) => {
@@ -81,11 +81,17 @@ export default function Transactions() {
   const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
   const [newPaymentMethod, setNewPaymentMethod] = useState('');
   const [newUser, setNewUser] = useState('Rudra Patel');
+  const [newUpiApp, setNewUpiApp] = useState('');
+  const [newUpiId, setNewUpiId] = useState('');
 
   const filteredTransactions = transactions.filter(t =>
     t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     t.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const totalIncome = filteredTransactions.filter(t => t.amount > 0).reduce((acc, t) => acc + t.amount, 0);
+  const totalExpense = Math.abs(filteredTransactions.filter(t => t.amount < 0).reduce((acc, t) => acc + t.amount, 0));
+  const netBalance = totalIncome - totalExpense;
 
   const handleAddTransaction = (e) => {
     e.preventDefault();
@@ -99,6 +105,8 @@ export default function Transactions() {
       amount: newType === 'expense' ? -Math.abs(amountValue) : Math.abs(amountValue),
       date: newDate,
       paymentMethod: newPaymentMethod,
+      upiApp: newPaymentMethod === 'UPI' ? newUpiApp : null,
+      upiId: newPaymentMethod === 'UPI' ? newUpiId : null,
       user: newUser,
       icon: newType === 'income' ? '💵' : '💸'
     };
@@ -111,6 +119,8 @@ export default function Transactions() {
     setNewDate(new Date().toISOString().split('T')[0]);
     setNewPaymentMethod('');
     setNewUser('Rudra Patel');
+    setNewUpiApp('');
+    setNewUpiId('');
   };
 
   // Group transactions by date
@@ -136,6 +146,29 @@ export default function Transactions() {
         </motion.button>
       </div>
 
+      <div className="grid-cards" style={{ marginBottom: '2rem' }}>
+        <motion.div variants={itemVariants} className="card" style={{ padding: '1.25rem' }}>
+          <div className="card-header">
+            <span className="card-title">Total Income</span>
+          </div>
+          <div className="card-value" style={{ color: 'var(--success)' }}>+₹{totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        </motion.div>
+        <motion.div variants={itemVariants} className="card" style={{ padding: '1.25rem' }}>
+          <div className="card-header">
+            <span className="card-title">Total Expenses</span>
+          </div>
+          <div className="card-value" style={{ color: 'var(--danger)' }}>-₹{totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        </motion.div>
+        <motion.div variants={itemVariants} className="card" style={{ padding: '1.25rem' }}>
+          <div className="card-header">
+            <span className="card-title">Net Balance</span>
+          </div>
+          <div className="card-value" style={{ color: netBalance >= 0 ? 'var(--text-main)' : 'var(--danger)' }}>
+            {netBalance >= 0 ? '' : '-'}₹{Math.abs(netBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+        </motion.div>
+      </div>
+
       <motion.div variants={itemVariants} className="card">
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
           <div className="form-group" style={{ flex: 1, margin: 0, flexDirection: 'row', alignItems: 'center', backgroundColor: 'var(--panel-bg-hover)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem' }}>
@@ -156,11 +189,22 @@ export default function Transactions() {
 
         <motion.div variants={containerVariants} className="list-container" style={{ gap: '2rem' }}>
           {sortedDates.length === 0 ? (
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>No transactions found.</p>
+            <div style={{ textAlign: 'center', padding: '4rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', backgroundColor: 'var(--panel-bg-hover)', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--border-color)' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                <Receipt size={32} opacity={0.5} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-main)' }}>No transactions found</h3>
+                <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>Try adjusting your search or add a new transaction.</p>
+              </div>
+              <button className="btn btn-primary" onClick={() => setIsModalOpen(true)} style={{ marginTop: '0.5rem' }}>
+                <Plus size={18} /> Add Transaction
+              </button>
+            </div>
           ) : (
             sortedDates.map(date => (
               <div key={date}>
-                <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '1rem', backgroundColor: 'var(--panel-bg-hover)', padding: '0.5rem 1rem', borderRadius: 'var(--radius-md)', display: 'inline-block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   {new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -173,12 +217,12 @@ export default function Transactions() {
                           <span className="item-category" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             {item.category}
                             {item.paymentMethod && (
-                              <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', backgroundColor: 'var(--panel-bg-hover)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontWeight: 600 }}>
-                                {item.paymentMethod}
+                              <span style={{ fontSize: '0.65rem', padding: '0.2rem 0.6rem', backgroundColor: 'var(--bg-color)', borderRadius: 'var(--radius-full)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+                                {item.paymentMethod} {item.upiApp ? `- ${item.upiApp}` : ''} {item.upiId ? `(${item.upiId})` : ''}
                               </span>
                             )}
                             {item.user && (
-                              <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', backgroundColor: 'var(--primary-light)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--primary)', color: 'var(--primary)', fontWeight: 600 }}>
+                              <span style={{ fontSize: '0.65rem', padding: '0.2rem 0.6rem', backgroundColor: 'var(--primary-light)', borderRadius: 'var(--radius-full)', border: '1px solid var(--primary)', color: 'var(--primary)', fontWeight: 600, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
                                 {item.user}
                               </span>
                             )}
@@ -270,9 +314,43 @@ export default function Transactions() {
                       value={newPaymentMethod} 
                       onChange={setNewPaymentMethod} 
                       placeholder="Select method"
-                      options={["UPI", "Credit Card", "Debit Card", "Net Banking", "Cash"]} 
+                      options={["UPI", "Credit Card", "Debit Card", "Net Banking", "Cash", "Pending"]} 
                     />
                   </div>
+
+                  <AnimatePresence>
+                    {newPaymentMethod === 'UPI' && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                        animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
+                        exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                        style={{ gridColumn: '1 / -1', padding: '1rem', backgroundColor: 'var(--panel-bg-hover)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-color)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}
+                      >
+                        <h4 style={{ gridColumn: '1 / -1', margin: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>UPI Details</h4>
+                        
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label">UPI App</label>
+                          <CustomDropdown 
+                            value={newUpiApp} 
+                            onChange={setNewUpiApp} 
+                            placeholder="Select UPI App"
+                            options={["Google Pay", "PhonePe", "Paytm", "CRED", "Amazon Pay", "Other"]} 
+                          />
+                        </div>
+
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label">UPI ID / Number</label>
+                          <input 
+                            type="text" 
+                            className="form-input" 
+                            placeholder="e.g. name@okhdfc" 
+                            value={newUpiId} 
+                            onChange={(e) => setNewUpiId(e.target.value)} 
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   <div className="form-group" style={{ margin: 0 }}>
                     <label className="form-label">User</label>

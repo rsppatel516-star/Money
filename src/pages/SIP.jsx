@@ -36,7 +36,7 @@ function CustomSelect({ value, onChange, options, label }) {
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           className="form-input" 
-          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', textAlign: 'left', backgroundColor: 'var(--panel-bg)' }}
+          style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', textAlign: 'left', backgroundColor: 'var(--panel-bg)' }}
         >
           <span>{value}</span>
           <ChevronDown size={16} style={{ color: 'var(--text-muted)' }} />
